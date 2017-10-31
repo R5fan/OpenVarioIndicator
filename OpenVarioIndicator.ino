@@ -207,7 +207,7 @@ void varioTask(void *pvParameters) {
   while (1) {
     if (noData)  variotest();
     //condor();
-    delay(10);
+    delay(100);
   }
 }
 

@@ -42,15 +42,16 @@ void paintsharp() {
 
 void paintnumbers(int rc) {
 
-  int ndigits = floor(log10(abs(int(alt)))) + 1;
+  int ndigits = floor(log10(abs(vario))) + 1;
   int digitwidth = 22;
+  ndigits=4;
 
   // top numbers
   sharp.setTextSize(1);
   sharp.setTextColor(WHITE, BLACK);
   sharp.setFont(&Lato_Regular_40);
   sharp.setCursor(110 - ndigits * digitwidth, 58);
-  sharp.print(int(alt));
+  sharp.print(vario,2);
   sharp.setFont(&DejaVu_Sans_Bold_15);
   sharp.print("m");
 
