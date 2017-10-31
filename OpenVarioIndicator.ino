@@ -62,12 +62,13 @@ unsigned long currentMillis;
 volatile float vario, varioDelta, avg, alt;
 volatile int sVario, iVario, previousiVario, varioDeltaV, stf;
 int dir = 1;
-boolean noData;
+boolean noData=1;
 
 // paint stuff
 int x, y;
 float data[40] = {0}; //for condor*/
 
+ 
 ////////////////// ISR /////////////////////////
 
 void encoder_isr() {
@@ -101,6 +102,7 @@ void setup() {
   encoder.setButtonOnPinZeroEnabled(true);
 
   // init vars
+  
   avg = 0;
   varioTimer = millis();
   stepperTimer = millis();
@@ -152,7 +154,7 @@ void setup() {
     NULL,                     /* parameter of the task */
     55,                        /* priority of the task */
     &displaytaskhandle,     /* Task handle to keep track of created task */
-    1);
+    0);
 
   xTaskCreatePinnedToCore(
     varioTask,           /* Task function. */
@@ -170,7 +172,7 @@ void setup() {
     NULL,                     /* parameter of the task */
     10,                        /* priority of the task */
     NULL,
-    0);     /* Task handle to keep track of created task */
+    1);     /* Task handle to keep track of created task */
 }
 
 
@@ -203,18 +205,15 @@ void lcdTask(void *pvParameters) {
 
 void varioTask(void *pvParameters) {
   while (1) {
-    if (noData) ;
-
-    variotest();
+    if (noData)  variotest();
     //condor();
-
     delay(10);
   }
 }
 
 void serialTask(void *pvParameters) {
   while (1) {
-    //  checkserial();
+    checkserial();
     delay(1);
   }
 }
@@ -222,11 +221,8 @@ void serialTask(void *pvParameters) {
 ////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  if (noData) {
-    /*ivario1=ivario;
-      variotest(); // move needle up/down for testing when no data is received on the com port
-      previousMillis[1]= millis();
-      ivario=int(vario*1000);        */
+   if (millis() -varioTimer > 5000) {
+    noData=1;    
   }
   delay(1000);
 }
@@ -301,14 +297,27 @@ void projectborder (int rc, int ixres, int iyres, float alpha, float edgedistanc
 
 void smoothvario() {
   // do floating point math here, so we can avoid it in ISR.
+
+  // simulate altitude & STF & average as long as OV doesnt provide this data
+  alt += vario * (  millis() - varioTimer ) / 1000.0;
+  //Serial.println(vario *(  millis() - varioTimer ) /1000.0);
+  alt = max(0, alt);
+  float fact = 0.005;
+  avg = vario * fact + (1 - fact) * avg;
+  if (avg > 0) stf = 120 - vario;
+  else stf = 120 - 20 * avg;
+
+
+  // interpoloation  
   currentMillis = millis();
   iVario = vario * 1000;
   float tmp1 =  (previousiVario - iVario);
   long int tmp2 =  varioTimer - currentMillis;
   float tmp3 =  tmp1 / tmp2;
   varioDeltaV = int(tmp3 * 1000);
+  //Serial.println(tmp2 );
   varioTimer = millis();
-
+  
 }
 
 void variotest() {
@@ -337,17 +346,7 @@ void variotest() {
 
   //vario+=random(-100,100)/50;
   vario = constrain(vario, -5, 5);
-  alt += vario * (  millis() - varioTimer ) / 1000.0;
-  //Serial.println(vario *(  millis() - varioTimer ) /1000.0);
-  alt = max(0, alt);
-  float fact = 0.005;
-  avg = vario * fact + (1 - fact) * avg;
-
-  if (avg > 0) stf = 120 - vario;
-  else stf = 120 - 20 * avg;
-
-
-
+ 
   smoothvario();
 }
 
@@ -364,11 +363,11 @@ void checkserial() {
   static char buffer[80]; // get data from openvario com port
   String received = "", msgType, varioT;
   int ind1, ind2, ind3, ind4, ind5;
-
+// Serial.println("checking serial");
   if (readline(Serial.read(), buffer, 80) > 0) {
     received = buffer;
     if (received.substring(0, 4) == "$POV") {
-      //     Serial.print("got vario:> ");
+   //   Serial.print("got vario:> ");
       ind1 = received.indexOf(',');  //finds location of first ,
       ind2 = received.indexOf(',', ind1 + 1 ); //Position of P or E or V
       msgType = received.substring(ind1 + 1, ind2); //P or E or V
@@ -379,10 +378,16 @@ void checkserial() {
         ind4 = varioT.indexOf('*'); //position of checksum data at end
         varioT = varioT.substring(0, ind4); //strip checksumdata
         vario = varioT.toFloat();
+        vario= constrain(vario,-5,5);
         noData = 0;
         previousiVario = iVario;
         iVario = vario * 1000;
         smoothvario();
+        /// quick setting of target, normally overriden by interpolation in stepper ISR
+          target =  2210 + iVario * 0.3; //
+          motor1.setPosition(target);
+        ///
+        
       }
     } else if (received.substring(0, 1) == "z") {
       noData = 0;

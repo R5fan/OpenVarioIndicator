@@ -7,7 +7,7 @@ void paintsharp() {
   float alpha;
 
   //scale vario to angle
-  alpha = PI * avg / (2 * 3.6);
+  alpha = PI * vario / (2 * 3.6);
 
   // clear screen
   sharp.fillRect(0, 0, xres, yres, BLACK);
