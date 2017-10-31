@@ -154,7 +154,7 @@ void setup() {
     NULL,                     /* parameter of the task */
     55,                        /* priority of the task */
     &displaytaskhandle,     /* Task handle to keep track of created task */
-    0);
+    1);
 
   xTaskCreatePinnedToCore(
     varioTask,           /* Task function. */
@@ -172,7 +172,7 @@ void setup() {
     NULL,                     /* parameter of the task */
     10,                        /* priority of the task */
     NULL,
-    1);     /* Task handle to keep track of created task */
+    0);     /* Task handle to keep track of created task */
 }
 
 
