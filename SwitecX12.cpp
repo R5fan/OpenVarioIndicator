@@ -45,7 +45,6 @@ SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep, unsigned char pi
 
   accelTable = defaultAccelTable;
   maxVel = defaultAccelTable[DEFAULT_ACCEL_TABLE_SIZE - 1][0]; // last value in table.
-  
 }
 
 void SwitecX12::step(int dir)

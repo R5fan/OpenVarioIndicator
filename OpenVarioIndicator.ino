@@ -62,13 +62,12 @@ unsigned long currentMillis;
 volatile float vario, varioDelta, avg, alt;
 volatile int sVario, iVario, previousiVario, varioDeltaV, stf;
 int dir = 1;
-boolean noData=1;
+boolean noData;
 
 // paint stuff
 int x, y;
 float data[40] = {0}; //for condor*/
 
- 
 ////////////////// ISR /////////////////////////
 
 void encoder_isr() {
@@ -102,7 +101,6 @@ void setup() {
   encoder.setButtonOnPinZeroEnabled(true);
 
   // init vars
-  
   avg = 0;
   varioTimer = millis();
   stepperTimer = millis();
@@ -205,7 +203,9 @@ void lcdTask(void *pvParameters) {
 
 void varioTask(void *pvParameters) {
   while (1) {
-    if (noData)  variotest();
+    if (noData) ;
+
+    variotest();
     //condor();
 
     delay(10);
@@ -214,7 +214,7 @@ void varioTask(void *pvParameters) {
 
 void serialTask(void *pvParameters) {
   while (1) {
-    checkserial();
+    //  checkserial();
     delay(1);
   }
 }
@@ -308,12 +308,7 @@ void smoothvario() {
   float tmp3 =  tmp1 / tmp2;
   varioDeltaV = int(tmp3 * 1000);
   varioTimer = millis();
-  if (varioTimer - currentMillis > 5000) {
-    noData=1;
-    
-  }
- 
-  
+
 }
 
 void variotest() {
@@ -351,6 +346,8 @@ void variotest() {
   if (avg > 0) stf = 120 - vario;
   else stf = 120 - 20 * avg;
 
+
+
   smoothvario();
 }
 
@@ -371,7 +368,7 @@ void checkserial() {
   if (readline(Serial.read(), buffer, 80) > 0) {
     received = buffer;
     if (received.substring(0, 4) == "$POV") {
-      Serial.print("got vario:> ");
+      //     Serial.print("got vario:> ");
       ind1 = received.indexOf(',');  //finds location of first ,
       ind2 = received.indexOf(',', ind1 + 1 ); //Position of P or E or V
       msgType = received.substring(ind1 + 1, ind2); //P or E or V
