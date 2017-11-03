@@ -190,7 +190,7 @@ void setup() {
 
 
 
-/////////////////////// RTOS Tasks ///////////////////
+/////////////////////// RTOS Tasks ////////////////////
 
 void einkTask(void *pvParameters) {
   UBaseType_t uxHighWaterMark;
