@@ -15,7 +15,7 @@
 // 1st value in each row must be > 1st value in subsequent row
 // 1st value in last row should be == maxVel, must be <= maxVel
 static unsigned short defaultAccelTable[][2] = {
-  {   20, 1200},
+  {   20, 1000},
   {   50, 400},
   {  100, 200},
   {  150, 150},

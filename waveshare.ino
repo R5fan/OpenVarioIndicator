@@ -33,6 +33,7 @@ void paintwaveshare() {
       float y2=y+20*(sin(alpha+triangle));
       waveshare.fillTriangle(x, y, x1,y1,x2,y2, WHITE);    
       waveshare.updateWindow(0, 0, 200, 200, false);
+      
      // waveshare.refresh();
 //      previousMillis[0]=millis();
 }
@@ -47,11 +48,13 @@ void paintsharpnumbers(int rc) {
       waveshare.setTextSize(1);
       waveshare.setTextColor(WHITE,BLACK);
       waveshare.setFont(&Lato_Regular_44);
-     
+  //ndigits=4;
       
       waveshare.setCursor(130-ndigits*digitwidth,58);
       
       waveshare.print(int(alt));
+     
+    //waveshare.print(vario);
       waveshare.setFont(&DejaVu_Sans_Mono_18);
       waveshare.print("m");    
 

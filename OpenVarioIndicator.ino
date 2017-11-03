@@ -21,8 +21,11 @@ Adafruit_SharpMem sharp(SHARP_SCK, SHARP_MOSI, SHARP_SS, 144, 168);
 #include <GxGDEP015OC1/GxGDEP015OC1.cpp>    // 1.54" b/w
 #include <GxIO/GxIO_SPI/GxIO_SPI.cpp>
 #include <GxIO/GxIO.cpp>
-GxIO_Class io(SPI, 21, 23, 22);
-GxEPD_Class waveshare(io, 22, 17);
+//GxIO_Class io(SPI, 21, 23, 22);
+GxIO_Class io(SPI, 25, 23, 22);
+//GxEPD_Class waveshare(io, 22, 17);
+GxEPD_Class waveshare(io, 22, 26);
+
 
 // common gfx
 #include <Adafruit_GFX.h>
@@ -46,9 +49,9 @@ int target = 0; //stepper target
 ////////// encoder
 #include <SPI.h>
 #include <ClickEncoder.h>
-#define ENCODER_PINA     22//33
-#define ENCODER_PINB     23//27
-#define ENCODER_BTN      21//12
+#define ENCODER_PINA     34//33
+#define ENCODER_PINB     39//27
+#define ENCODER_BTN      36//12
 #define ENCODER_STEPS_PER_NOTCH    4
 ClickEncoder encoder = ClickEncoder(ENCODER_PINA, ENCODER_PINB, ENCODER_BTN, ENCODER_STEPS_PER_NOTCH);
 int16_t last, value;
@@ -67,30 +70,40 @@ boolean noData=1;
 // paint stuff
 int x, y;
 float data[40] = {0}; //for condor*/
+boolean switchdisplay;
 
  
 ////////////////// ISR /////////////////////////
 
 void encoder_isr() {
   encoder.service();
-  // value += encoder.getValue();
+  value += encoder.getValue();
   if (value != last) {
     last = value;
-    //Serial.print("Encoder Value: ");
-    //Serial.println(value);
+    Serial.print("Encoder Value: ");
+    Serial.println(value);
   }
+  ClickEncoder::Button b = encoder.getButton();
+  if (b== ClickEncoder::Clicked) {
+    Serial.println("button pressed");
+    switchdisplay =!switchdisplay;
+  } 
 }
 
 void stepper_isr() {
 
-  //long int currentMicros=micros();
-  long int tmp = (micros() - 1000 * varioTimer) / 1000;
+  long int currentMicros=micros();
+  long int tmp = (currentMicros - 1000 * varioTimer) / 1000;
   sVario = previousiVario + varioDeltaV * tmp / 1000;
   sVario = constrain(sVario, -5000, 5000);
   target =  2210 + sVario * 0.3; //
   motor1.setPosition(target);
   motor1.update();
-  //stepperTimer = currentMillis;
+//  if (currentMicros % 11511 == 0 ){
+//    tmp=micros()-currentMicros;
+//    Serial.println (tmp);
+//  }
+ // stepperTimer = currentMicros;
 }
 
 //////////////////// Arduino //////////////////////////////////////
@@ -102,7 +115,7 @@ void setup() {
   encoder.setButtonOnPinZeroEnabled(true);
 
   // init vars
-  
+  switchdisplay= true;
   avg = 0;
   varioTimer = millis();
   stepperTimer = millis();
@@ -127,13 +140,13 @@ void setup() {
   // encoder ISR setup
   timer = timerBegin(0, 80, true);
   timerAttachInterrupt(timer, &encoder_isr, true);
-  timerAlarmWrite(timer, 1000, true); //1000
+  timerAlarmWrite(timer, 100, true); //1000
   timerAlarmEnable(timer);
 
   // stepper ISR setup
   timer2 = timerBegin(1, 80, true);
   timerAttachInterrupt(timer2, &stepper_isr, true);
-  timerAlarmWrite(timer2, 50, true); //1000
+  timerAlarmWrite(timer2, 30, true); //1000
   timerAlarmEnable(timer2);
 
 
@@ -184,7 +197,8 @@ void einkTask(void *pvParameters) {
   uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
   // Serial.println(uxHighWaterMark);
   while (1) {
-    // paintwaveshare();
+   if (int(millis()/30000) %2 ==0)  paintwaveshare();
+   //if (switchdisplay)
     uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
     //  Serial.println(uxHighWaterMark);
     delay(100);
@@ -196,10 +210,12 @@ void lcdTask(void *pvParameters) {
   uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
   // Serial.println(uxHighWaterMark);
   while (1) {
-    paintsharp();
+   if (int(millis()/30000) %2 ==1) paintsharp();
+   //if (!switchdisplay) 
+  
     uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
     //  Serial.println(uxHighWaterMark);
-    delay(50);
+    delay(100);
   }
 }
 
@@ -207,7 +223,7 @@ void varioTask(void *pvParameters) {
   while (1) {
     if (noData)  variotest();
     //condor();
-    delay(100);
+    delay(50);
   }
 }
 
@@ -230,19 +246,24 @@ void loop() {
 ////////////////////////////////////////////////////////////////////////
 
 void splash() {
+   sharp.begin();
+  sharp.setRotation(2);
+  sharp.clearDisplay();
+  sharp.drawBitmap(0, 0, sharplogo, 144, 168, GxEPD_BLACK); // always black
+  sharp.refresh();
+
   waveshare.init();
   waveshare.setRotation(1);
   waveshare.fillRect(0, 0, 200, 200, WHITE);
   waveshare.drawBitmap(0, 0, wavesharelogo, 200, 200, BLACK);
   waveshare.update();
-
-  sharp.begin();
-  sharp.setRotation(2);
-  sharp.clearDisplay();
-  sharp.drawBitmap(0, 0, sharplogo, 144, 168, GxEPD_BLACK); // always black
-  sharp.refresh();
-  delay(1000);
+    
+  delay(3000);
   sharp.setRotation(3);
+  waveshare.fillRect(0, 0, 200, 200, BLACK);
+  waveshare.drawBitmap(0, 0, wavesharelogo, 200, 200, WHITE);
+
+  waveshare.update();
 }
 
 void projectborder (int rc, int ixres, int iyres, float alpha, float edgedistance) {
@@ -299,10 +320,10 @@ void smoothvario() {
   // do floating point math here, so we can avoid it in ISR.
 
   // simulate altitude & STF & average as long as OV doesnt provide this data
-  alt += vario * (  millis() - varioTimer ) / 1000.0;
+  alt += vario * (  millis() - varioTimer ) / 100.0;
   //Serial.println(vario *(  millis() - varioTimer ) /1000.0);
   alt = max(0, alt);
-  float fact = 0.005;
+  float fact = 0.1;
   avg = vario * fact + (1 - fact) * avg;
   if (avg > 0) stf = 120 - vario;
   else stf = 120 - 20 * avg;
@@ -318,6 +339,9 @@ void smoothvario() {
   //Serial.println(tmp2 );
   varioTimer = millis();
   
+
+//target =  2210 + iVario * 0.3; //
+//motor1.setPosition(target);  
 }
 
 void variotest() {
@@ -335,14 +359,16 @@ void variotest() {
   }
   if (vario > 1)  switched = 0;
   value += random(0, 10) - 5;
-  value = constrain(value, 25, 100);
+  value = constrain(value, 2, 100);
 
-  varioDelta = dir * abs(value) / 2000.0 + dir * value * abs(vario) / 10000.0;
+  varioDelta = dir * abs(value) / 500.0;// + dir * value * abs(vario) / 10000.0;
   vario += varioDelta * (millis() - varioTimer) / 10;
-  if (random(0, 50) == 0) vario *= -1;
-  if (random(0, 100) == 0) dir *= -1;
+  if (random(0, 150) == 0) vario *= -1;
+  if (random(0, 500) == 0) dir *= -1;
   if (random(0, 1000) == 0) vario = 0;
-  if (random(0, 100) == 0) vario += 1;
+  if (random(0, 100) == 0) vario = 5;
+  if (random(0, 100) == 0) vario = -5;
+  if (random(0, 100) == 0) value = 50;
 
   //vario+=random(-100,100)/50;
   vario = constrain(vario, -5, 5);
@@ -367,7 +393,7 @@ void checkserial() {
   if (readline(Serial.read(), buffer, 80) > 0) {
     received = buffer;
     if (received.substring(0, 4) == "$POV") {
-   //   Serial.print("got vario:> ");
+      //Serial.print("got vario:> ");
       ind1 = received.indexOf(',');  //finds location of first ,
       ind2 = received.indexOf(',', ind1 + 1 ); //Position of P or E or V
       msgType = received.substring(ind1 + 1, ind2); //P or E or V
@@ -384,8 +410,8 @@ void checkserial() {
         iVario = vario * 1000;
         smoothvario();
         /// quick setting of target, normally overriden by interpolation in stepper ISR
-          target =  2210 + iVario * 0.3; //
-          motor1.setPosition(target);
+    //      target =  2210 + iVario * 0.3; //
+    //      motor1.setPosition(target);
         ///
         
       }
